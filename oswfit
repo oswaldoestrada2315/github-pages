@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Entreno">
+  <title>Registro de Entrenamiento</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body class="bg-gray-100 font-sans min-h-screen flex flex-col">
+  <div class="container mx-auto p-4 flex-grow">
+    <h1 class="text-2xl font-bold text-center mb-6">Registro de Entrenamiento</h1>
+
+    <!-- Sección Rutina del Día -->
+    <div id="rutina" class="mb-6">
+      <h2 class="text-xl font-semibold mb-4">Rutina del Día</h2>
+      <div id="rutina-list" class="space-y-3"></div>
+    </div>
+
+    <!-- Sección Registro de Peso y Repeticiones -->
+    <div id="registro" class="mb-6">
+      <h2 class="text-xl font-semibold mb-4">Registrar Peso y Repeticiones</h2>
+      <form id="workout-form" class="space-y-4">
+        <div>
+          <label class="block text-sm">Ejercicio:</label>
+          <select id="exercise-select" class="w-full p-2 border rounded text-sm" onchange="updateSeriesInputs()">
+            <option value="">Selecciona un ejercicio</option>
+          </select>
+        </div>
+        <div id="series-inputs" class="space-y-3"></div>
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-full text-sm">Registrar Ejercicio</button>
+      </form>
+    </div>
+
+    <!-- Sección Historial -->
+    <div id="historial">
+      <h2 class="text-xl font-semibold mb-4">Historial</h2>
+      <button onclick="exportData()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mb-4 text-sm">Exportar Datos</button>
+      <div id="historial-list" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <script>
+    // Rutina de hipertrofia (6 días)
+    const rutina = [
+      { 
+        dia: "Lunes - Push", 
+        ejercicios: [
+          { nombre: "Press de banca con barra", series: 4, repeticiones: "8-12", compuesto: true },
+          { nombre: "Press inclinado con mancuernas", series: 3, repeticiones: "10-12" },
+          { nombre: "Fondos en paralelas", series: 3, repeticiones: "10-12" },
+          { nombre: "Cruce de poleas", series: 3, repeticiones: "12" },
+          { nombre: "Press militar con barra", series: 3, repeticiones: "8-12", compuesto: true },
+          { nombre: "Extensiones de tríceps en polea", series: 3, repeticiones: "12" }
+        ]
+      },
+      { 
+        dia: "Martes - Pull", 
+        ejercicios: [
+          { nombre: "Dominadas", series: 4, repeticiones: "8-12", compuesto: true },
+          { nombre: "Remo con barra", series: 4, repeticiones: "8-12", compuesto: true },
+          { nombre: "Pulldown en polea", series: 3, repeticiones: "10-12" },
+          { nombre: "Remo sentado en polea", series: 3, repeticiones: "10-12" },
+          { nombre: "Curl de bíceps con barra EZ", series: 3, repeticiones: "10-12" },
+          { nombre: "Curl martillo con mancuernas", series: 3, repeticiones: "12" }
+        ]
+      },
+      { 
+        dia: "Miércoles - Piernas", 
+        ejercicios: [
+          { nombre: "Sentadillas traseras", series: 4, repeticiones: "8-12", compuesto: true },
+          { nombre: "Peso muerto rumano", series: 4, repeticiones: "8-12", compuesto: true },
+          { nombre: "Prensa de piernas", series: 3, repeticiones: "10-12" },
+          { nombre: "Zancadas caminando con mancuernas", series: 3, repeticiones: "12 por pierna" },
+          { nombre: "Elevaciones de talones", series: 3, repeticiones: "15-20" },
+          { nombre: "Puente de glúteos con barra", series: 3, repeticiones: "12" }
+        ]
+      },
+      { 
+        dia: "Jueves - Push", 
+        ejercicios: [
+          { nombre: "Press de banca inclinado con barra", series: 4, repeticiones: "8-12", compuesto: true },
+          { nombre: "Press plano con mancuernas", series: 3, repeticiones: "10-12" },
+          { nombre: "Aperturas con mancuernas en banco inclinado", series: 3, repeticiones: "12" },
+          { nombre: "Elevaciones laterales con mancuernas", series: 3, repeticiones: "12" },
+          { nombre: "Press Arnold con mancuernas", series: 3, repeticiones: "10-12" },
+          { nombre: "Press francés con mancuerna", series: 3, repeticiones: "10-12" }
+        ]
+      },
+      { 
+        dia: "Viernes - Pull", 
+        ejercicios: [
+          { nombre: "Peso muerto convencional", series: 4, repeticiones: "8-12", compuesto: true },
+          { nombre: "Remo con mancuerna a una mano", series: 3, repeticiones: "10-12 por lado" },
+          { nombre: "Pulldown en polea (agarre cerrado)", series: 3, repeticiones: "10-12" },
+          { nombre: "Face pull en polea", series: 3, repeticiones: "12" },
+          { nombre: "Curl de bíceps inclinado con mancuernas", series: 3, repeticiones: "10-12" },
+          { nombre: "Curl concentrado", series: 3, repeticiones: "12 por brazo" }
+        ]
+      },
+      { 
+        dia: "Sábado - Piernas y Core", 
+        ejercicios: [
+          { nombre: "Sentadillas frontales", series: 4, repeticiones: "8-12", compuesto: true },
+          { nombre: "Peso muerto sumo", series: 4, repeticiones: "8-12", compuesto: true },
+          { nombre: "Step-ups con mancuernas", series: 3, repeticiones: "12 por pierna" },
+          { nombre: "Máquina de femorales acostado", series: 3, repeticiones: "10-12" },
+          { nombre: "Elevaciones de talones sentado", series: 3, repeticiones: "15-20" },
+          { nombre: "Plancha con peso", series: 3, repeticiones: "30-45 seg" },
+          { nombre: "Elevaciones de piernas colgado", series: 3, repeticiones: "12-15" }
+        ]
+      }
+    ];
+
+    // Cargar ejercicios en el select
+    const exerciseSelect = document.getElementById("exercise-select");
+    rutina.forEach(dia => {
+      dia.ejercicios.forEach(ej => {
+        const option = document.createElement("option");
+        option.value = ej.nombre;
+        option.textContent = ej.nombre;
+        exerciseSelect.appendChild(option);
+      });
+    });
+
+    // Generar inputs dinámicos para series
+    function updateSeriesInputs() {
+      const exerciseName = document.getElementById("exercise-select").value;
+      const seriesInputs = document.getElementById("series-inputs");
+      seriesInputs.innerHTML = "";
+      if (!exerciseName) return;
+
+      const ejercicio = rutina.flatMap(d => d.ejercicios).find(e => e.nombre === exerciseName);
+      const numSeries = ejercicio ? ejercicio.series : 3;
+
+      for (let i = 1; i <= numSeries; i++) {
+        const seriesDiv = document.createElement("div");
+        seriesDiv.className = "flex space-x-2";
+        seriesDiv.innerHTML = `
+          <div class="flex-1">
+            <label class="block text-xs">Serie ${i} - Peso (kg):</label>
+            <input type="number" name="peso-${i}" class="w-full p-1 border rounded text-sm" step="0.1" min="0">
+          </div>
+          <div class="flex-1">
+            <label class="block text-xs">Serie ${i} - Reps:</label>
+            <input type="number" name="reps-${i}" class="w-full p-1 border rounded text-sm" min="1">
+          </div>
+        `;
+        seriesInputs.appendChild(seriesDiv);
+      }
+    }
+
+    // Mostrar rutina del día
+    function loadRutina() {
+      const rutinaList = document.getElementById("rutina-list");
+      rutinaList.innerHTML = "";
+      const today = new Date().getDay();
+      const diaIndex = today === 0 ? -1 : today - 1;
+      if (diaIndex === -1) {
+        rutinaList.innerHTML = "<p class='text-base'>Domingo: Día de descanso</p>";
+        return;
+      }
+      const diaRutina = rutina[diaIndex];
+      const diaDiv = document.createElement("div");
+      diaDiv.innerHTML = `<h3 class="text-lg font-bold">${diaRutina.dia}</h3>`;
+      diaRutina.ejercicios.forEach(ej => {
+        const ejDiv = document.createElement("div");
+        ejDiv.className = "p-2 bg-white rounded shadow text-sm";
+        ejDiv.innerHTML = `${ej.nombre} (${ej.series}x${ej.repeticiones})${ej.compuesto ? " <span class='text-red-500'>[Compuesto Pesado]</span>" : ""}`;
+        diaDiv.appendChild(ejDiv);
+      });
+      rutinaList.appendChild(diaDiv);
+    }
+
+    // Registrar peso y repeticiones por serie
+    document.getElementById("workout-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const exercise = document.getElementById("exercise-select").value;
+      if (!exercise) {
+        alert("Selecciona un ejercicio");
+        return;
+      }
+
+      const ejercicio = rutina.flatMap(d => d.ejercicios).find(e => e.nombre === exercise);
+      const numSeries = ejercicio ? ejercicio.series : 3;
+      const series = [];
+
+      for (let i = 1; i <= numSeries; i++) {
+        const peso = parseFloat(document.querySelector(`input[name="peso-${i}"]`)?.value);
+        const reps = parseInt(document.querySelector(`input[name="reps-${i}"]`)?.value);
+        if (peso >= 0 && reps > 0) {
+          series.push({ serie: i, peso, repeticiones: reps });
+        }
+      }
+
+      if (series.length === 0) {
+        alert("Ingresa al menos una serie con peso y repeticiones válidos");
+        return;
+      }
+
+      const registro = {
+        ejercicio: exercise,
+        series: series,
+        fecha: new Date().toLocaleString(),
+        dia: rutina[new Date().getDay() - 1]?.dia || "Otro"
+      };
+
+      let registros = JSON.parse(localStorage.getItem("registros") || "[]");
+      registros.push(registro);
+      localStorage.setItem("registros", JSON.stringify(registros));
+      loadHistorial();
+      document.getElementById("workout-form").reset();
+      updateSeriesInputs();
+    });
+
+    // Cargar historial
+    function loadHistorial() {
+      const historialList = document.getElementById("historial-list");
+      historialList.innerHTML = "";
+      let registros = JSON.parse(localStorage.getItem("registros") || "[]");
+      registros.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "p-2 bg-white rounded shadow text-sm";
+        const seriesText = r.series.map(s => `Serie ${s.serie}: ${s.peso}kg x ${s.repeticiones} reps`).join(", ");
+        div.innerHTML = `${r.fecha} | ${r.dia} | ${r.ejercicio} | ${seriesText}`;
+        historialList.appendChild(div);
+      });
+    }
+
+    // Exportar datos
+    function exportData() {
+      const registros = JSON.parse(localStorage.getItem("registros") || "[]");
+      if (registros.length === 0) {
+        alert("No hay datos para exportar");
+        return;
+      }
+      const csv = ["Fecha,Día,Ejercicio,Series"];
+      registros.forEach(r => {
+        const seriesText = r.series.map(s => `Serie ${s.serie}: ${s.peso}kg x ${s.repeticiones} reps`).join("; ");
+        csv.push(`"${r.fecha}","${r.dia}","${r.ejercicio}","${seriesText}"`);
+      });
+      const csvContent = csv.join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "entrenamiento.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Inicializar
+    loadRutina();
+    loadHistorial();
+  </script>
+</body>
+</html>
